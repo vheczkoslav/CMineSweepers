@@ -1,0 +1,3 @@
+/home/vboxuser/code/minesweeper/cmake-build-debug/CMakeFiles/main.dir
+/home/vboxuser/code/minesweeper/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/vboxuser/code/minesweeper/cmake-build-debug/CMakeFiles/rebuild_cache.dir
