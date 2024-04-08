@@ -1,4 +1,4 @@
-CMakeFiles/main.dir/main.c.o: /home/vboxuser/code/minesweeper/main.c \
+CMakeFiles/main.dir/main.c.o: /home/vboxuser/code/minesweeper_git/main.c \
  /usr/include/stdc-predef.h /usr/include/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
@@ -47,7 +47,7 @@ CMakeFiles/main.dir/main.c.o: /home/vboxuser/code/minesweeper/main.c \
  /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
- /home/vboxuser/code/minesweeper/main.h /usr/include/SDL2/SDL.h \
+ /home/vboxuser/code/minesweeper_git/main.h /usr/include/SDL2/SDL.h \
  /usr/include/SDL2/SDL_main.h /usr/include/SDL2/SDL_stdinc.h \
  /usr/include/SDL2/SDL_config.h \
  /usr/include/x86_64-linux-gnu/SDL2/_real_SDL_config.h \

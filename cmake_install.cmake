@@ -1,4 +1,4 @@
-# Install script for directory: /home/vboxuser/code/minesweeper
+# Install script for directory: /home/vboxuser/code/minesweeper_git
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/vboxuser/code/minesweeper/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/vboxuser/code/minesweeper_git/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
