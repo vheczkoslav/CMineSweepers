@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "main.h"
+#define sprite_count 12
+
+int g = BEFORE;
 
 SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
     SDL_Texture** textures = malloc(len * sizeof(SDL_Texture*));
     SDL_Surface *tmp;
-    for(int i = 0; i <= len; i++){
+    for(int i = 0; i < len; i++){
         switch(i){
             case 0:
                 tmp = IMG_Load("sprites/hidden.png");
@@ -117,26 +120,16 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                 break;
         }
     }
-    free(textures);
+    free(tmp);
     return textures;
 }
 
-void mouseHandle(int x, int y) {
+void mouseHandle(int x, int y, SDL_Window* sw, int signal) {
     int rx = x / 16, ry = y / 16;
-    printf("X: %d, Y: %d\n", rx, ry);
-    /*switch (GAME_SIZE) {
-        case 1:
-            break;
-        case 2:
 
-            break;
-        case 3:
-
-            break;
-    }*/
 }
 
-char* rtGameState(){
+char* rtStateMsg(){
     if(g == BEFORE){
         return "Minesweeper: click to start";
     }
@@ -173,7 +166,7 @@ SDL_Window* init_win(){
     int window_y = (SDL_DM.h / 2) - (WIN_SIZE_Y / 2);
 
     if(DEBUG == false){
-        return SDL_CreateWindow(rtGameState(), window_x, window_y, WIN_SIZE_X, WIN_SIZE_Y, SDL_WINDOW_SHOWN);
+        return SDL_CreateWindow(rtStateMsg(), window_x, window_y, WIN_SIZE_X, WIN_SIZE_Y, SDL_WINDOW_SHOWN);
     }
     else{
         return SDL_CreateWindow("DEBUG ENABLED", window_x, window_y, WIN_SIZE_X, WIN_SIZE_Y, SDL_WINDOW_SHOWN);
@@ -187,11 +180,10 @@ void init_tiles(){
             for(int i = 0; i < 9; i++){
                 tiles[i] = malloc(sizeof(Tile) * 9);
                 for(int j = 0; j < 9; j++){
-                    tiles[i][j].found = false;
+                    tiles[i][j].state = NOT_FOUND;
                     tiles[i][j].x = j;
                     tiles[i][j].y = i;
                     tiles[i][j].bomb = false;
-                    tiles[i][j].show = false;
                 }
             }
             break;
@@ -200,11 +192,10 @@ void init_tiles(){
             for(int i = 0; i < 16; i++){
                 tiles[i] = malloc(sizeof(Tile) * 16);
                 for(int j = 0; j < 16; j++){
-                    tiles[i][j].found = false;
+                    tiles[i][j].state = NOT_FOUND;
                     tiles[i][j].x = j;
                     tiles[i][j].y = i;
                     tiles[i][j].bomb = false;
-                    tiles[i][j].show = false;
                 }
             }
             break;
@@ -212,12 +203,11 @@ void init_tiles(){
             tiles = malloc(sizeof(Tile*) * 16);
             for(int i = 0; i < 16; i++){ // i is y (1st dim)
                 tiles[i] = malloc(sizeof(Tile) * 30);
-                for(int j = 0; j < 30; j++){ // j is x (2n dim)
-                    tiles[i][j].found = false;
+                for(int j = 0; j < 30; j++){ // j is x (2nd dim)
+                    tiles[i][j].state= NOT_FOUND;
                     tiles[i][j].x = j;
                     tiles[i][j].y = i;
                     tiles[i][j].bomb = false;
-                    tiles[i][j].show = false;
                 }
             }
             break;
@@ -228,9 +218,9 @@ void init_tiles(){
 void fillBombs() {
     int tilesCount = 0;
     int bombCount = 0;
-    if(GAME_SIZE == 1) tilesCount = 81; bombCount = (int)tilesCount * 0.123;
-    if(GAME_SIZE == 2) tilesCount = 256; bombCount = (int)tilesCount * 0.156;
-    if(GAME_SIZE == 3) tilesCount = 480; bombCount = (int)tilesCount * 0.206;
+    if(GAME_SIZE == 1) tilesCount = 81; bombCount = (int)tilesCount * 0.123; bombsToFind = bombCount;
+    if(GAME_SIZE == 2) tilesCount = 256; bombCount = (int)tilesCount * 0.156; bombsToFind = bombCount;
+    if(GAME_SIZE == 3) tilesCount = 480; bombCount = (int)tilesCount * 0.206; bombsToFind = bombCount;
     int* freeTiles = malloc(sizeof(int) * tilesCount); // 1D representation index representation of 2D index of Tile
 
     for(int i = 0; i < tilesCount; i++){
@@ -258,8 +248,7 @@ void fillBombs() {
         tiles[y][x].bomb = true;
 
         for(int j = rand_index; j < tilesCount - 1; j++) freeTiles[j] = freeTiles[j + 1];
-        tilesCount--;
-        freeTiles = realloc(freeTiles, sizeof(int) * tilesCount);
+        freeTiles = realloc(freeTiles, sizeof(int) * --tilesCount);
     }
     free(freeTiles);
 }
@@ -272,10 +261,6 @@ void free_tiles(){
             }
             break;
         case 2:
-            for(int i = 0; i < 16; i++){
-                free(tiles[i]);
-            }
-            break;
         case 3:
             for(int i = 0; i < 16; i++){
                 free(tiles[i]);
@@ -285,45 +270,105 @@ void free_tiles(){
     free(tiles);
 }
 
-void render(SDL_Renderer* renderer, SDL_Texture** textures){
+void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
     int x = 0, y = 0;
-    if(GAME_SIZE == 0) x = 9, y = 9;
-    if(GAME_SIZE == 1) x = 16, y = 16;
-    if(GAME_SIZE == 2) x = 30, y = 16;
-    for(int i = 0; i < x; i++){
-        for(int j = 0; j < y; j++){
-            if(!tiles[i][j].found) {
-                SDL_Rect *temp;
-                temp = malloc(sizeof(SDL_Rect));
-                temp->x = tiles[i][j].x * i, temp->y = tiles[i][j].y * j;
-                temp->w = 16, temp->h = 16;
-                SDL_RenderCopy(renderer, textures[0], NULL, temp);
-                printf("X: %d, Y: %d; ", temp->x, temp->y);
-                free(temp);
-            }
-            else if(tiles[i][j].found && !tiles[i][j].bomb){
-                switch(neighborBombs(tiles[i][j].x, tiles[i][j].y)){
-                    case 0:
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        break;
-                    case 4:
-                        break;
-                    case 5:
-                        break;
-                    case 6:
-                        break;
-                    case 7:
-                        break;
-                    case 8:
-                        break;
+    if(GAME_SIZE == 1) x = 9, y = 9;
+    if(GAME_SIZE == 2) x = 16, y = 16;
+    if(GAME_SIZE == 3) x = 30, y = 16;
+
+    if(*show){
+        for(int i = 0; i < y; i++){
+            for(int j = 0; j < x; j++){
+                SDL_Rect temp;
+                temp.x = tiles[i][j].x * i, temp.y = tiles[i][j].y * j;
+                temp.w = 16, temp.h = 16;
+                if(!tiles[i][j].bomb){
+                    switch(neighborBombs(tiles[i][j].x, tiles[i][j].y)){
+                        case 0:
+                            SDL_RenderCopy(renderer, textures[11], NULL, &temp);
+                            break;
+                        case 1:
+                            SDL_RenderCopy(renderer, textures[3], NULL, &temp);
+                            break;
+                        case 2:
+                            SDL_RenderCopy(renderer, textures[4], NULL, &temp);
+                            break;
+                        case 3:
+                            SDL_RenderCopy(renderer, textures[5], NULL, &temp);
+                            break;
+                        case 4:
+                            SDL_RenderCopy(renderer, textures[6], NULL, &temp);
+                            break;
+                        case 5:
+                            SDL_RenderCopy(renderer, textures[7], NULL, &temp);
+                            break;
+                        case 6:
+                            SDL_RenderCopy(renderer, textures[8], NULL, &temp);
+                            break;
+                        case 7:
+                            SDL_RenderCopy(renderer, textures[9], NULL, &temp);
+                            break;
+                        case 8:
+                            SDL_RenderCopy(renderer, textures[10], NULL, &temp);
+                            break;
+                    }
+                }
+                else{
+                    SDL_RenderCopy(renderer, textures[1], NULL, &temp);
                 }
             }
-            printf("\n");
+        }
+    }
+    else{
+        for(int i = 0; i < y; i++){
+            for(int j = 0; j < x; j++){
+                if(tiles[i][j].state == NOT_FOUND) {
+                    SDL_Rect temp;
+                    temp.x = tiles[i][j].x * i, temp.y = tiles[i][j].y * j;
+                    temp.w = 16, temp.h = 16;
+                    SDL_RenderCopy(renderer, textures[0], NULL, &temp);
+                }
+                else if(tiles[i][j].state == FOUND && !tiles[i][j].bomb){
+                    SDL_Rect temp;
+                    temp.x = tiles[i][j].x * i, temp.y = tiles[i][j].y * j;
+                    temp.w = 16, temp.h = 16;
+                    switch(neighborBombs(tiles[i][j].x, tiles[i][j].y)){
+                        case 0:
+                            SDL_RenderCopy(renderer, textures[11], NULL, &temp);
+                            break;
+                        case 1:
+                            SDL_RenderCopy(renderer, textures[3], NULL, &temp);
+                            break;
+                        case 2:
+                            SDL_RenderCopy(renderer, textures[4], NULL, &temp);
+                            break;
+                        case 3:
+                            SDL_RenderCopy(renderer, textures[5], NULL, &temp);
+                            break;
+                        case 4:
+                            SDL_RenderCopy(renderer, textures[6], NULL, &temp);
+                            break;
+                        case 5:
+                            SDL_RenderCopy(renderer, textures[7], NULL, &temp);
+                            break;
+                        case 6:
+                            SDL_RenderCopy(renderer, textures[8], NULL, &temp);
+                            break;
+                        case 7:
+                            SDL_RenderCopy(renderer, textures[9], NULL, &temp);
+                            break;
+                        case 8:
+                            SDL_RenderCopy(renderer, textures[10], NULL, &temp);
+                            break;
+                    }
+                }
+                else if(tiles[i][j].state == FLAG){
+                    SDL_Rect temp;
+                    temp.x = tiles[i][j].x * i, temp.y = tiles[i][j].y * j;
+                    temp.w = 16, temp.h = 16;
+                    SDL_RenderCopy(renderer, textures[2], NULL, &temp);
+                }
+            }
         }
     }
 }
@@ -342,20 +387,77 @@ int neighborBombs(int x, int y){
             xlim = 16, ylim = 30;
     }
 
-    if(x > 0){
-        if(tiles[y][x + 1].bomb == true) counter++;
-    }
-    if(x < xlim - 1){
-        if(tiles[y][x - 1].bomb == true) counter++;
-    }
-    if(y > 0){
-        if(tiles[y + 1][x].bomb == true) counter++;
-    }
-    if(y < ylim - 1){
-        if(tiles[y - 1][x].bomb == true) counter++;
-    }
+    if(x > 0 && tiles[y][x - 1].bomb == true) counter++;
+    if(x > 0 && y > 0 && tiles[y - 1][x - 1].bomb == true) counter++;
+    if(x < xlim - 1 && tiles[y][x + 1].bomb == true) counter++;
+    if(x < xlim - 1 && y > 0 && tiles[y - 1][x + 1].bomb == true) counter++;
+    if(y > 0 && tiles[y + 1][x].bomb == true) counter++;
+    if(x > 0 && y < ylim - 1 && tiles[y - 1][x + 1].bomb == true) counter++;
+    if(y < ylim - 1 && tiles[y - 1][x].bomb == true) counter++;
+    if(x < xlim - 1 && y < ylim - 1 && tiles[y + 1][x + 1].bomb == true) counter++;
+    return counter;
+}
 
-    return 0;
+void showBombs() {
+    int xlim, ylim;
+    if (GAME_SIZE == 1) xlim = 9, ylim = 9;
+    if (GAME_SIZE == 2) xlim = 16, ylim = 16;
+    else xlim = 30, ylim = 16;
+    for(int i = 0; i < ylim; i++){
+        for(int j = 0; j < xlim; j++){
+            if(tiles[i][j].bomb) tiles[i][j].state = FOUND;
+        }
+    }
+}
+
+void print_tiles(){
+    if(GAME_SIZE == 1){
+        for(int i = 0; i < 9; i++){
+            for(int j = 0; j < 9; j++){
+                if(tiles[i][j].bomb != true){
+                    switch(neighborBombs(i, j)){
+                        case 0:
+                            printf("0");
+                            break;
+                        case 1:
+                            printf("1");
+                            break;
+                        case 2:
+                            printf("2");
+                            break;
+                        case 3:
+                            printf("3");
+                            break;
+                        case 4:
+                            printf("4");
+                            break;
+                        case 5:
+                            printf("5");
+                            break;
+                        case 6:
+                            printf("6");
+                            break;
+                        case 7:
+                            printf("7");
+                            break;
+                        case 8:
+                            printf("8");
+                            break;
+                    }
+                }
+                else{
+                    printf("B");
+                }
+                printf("\n");
+            }
+        }
+    }
+    if(GAME_SIZE == 2){
+
+    }
+    if(GAME_SIZE == 3){
+
+    }
 }
 
 int main(int argc, char** argv) {
@@ -384,19 +486,19 @@ int main(int argc, char** argv) {
     SDL_Window* win;
     SDL_Renderer* rnd;
     SDL_Event evt;
-    SDL_Texture** sprites = load_textures(12, rnd);
 
     if(DEBUG == 1) printf("Debug on\n");
     win = init_win();
     rnd = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
+    SDL_Texture** sprites = load_textures(sprite_count, rnd);
+
     int running = 1;
-    bool firstRender = false;
 
     init_tiles();
-    render(rnd, sprites);
+    bool showAll = false;
+    render(rnd, sprites, &showAll);
     while(running){
-        //if(firstRender == false) render(); firstRender = !firstRender;
         while(SDL_PollEvent( &evt ) != 0){
             switch(evt.type){
                 case SDL_QUIT:
@@ -407,9 +509,25 @@ int main(int argc, char** argv) {
                     if(SDL_BUTTON_LEFT == evt.button.button){ // if (evt.button.type == ...)
                         int mouseX = 0, mouseY = 0;
                         SDL_GetMouseState(&mouseX, &mouseY);
-                        mouseHandle(mouseX, mouseY);
+                        mouseHandle(mouseX, mouseY, win, 0);
+                        //render(rnd, sprites, &showAll);
+                    }
+                    if(SDL_BUTTON_RIGHT == evt.button.button){
+                        int mouseX = 0, mouseY = 0;
+                        SDL_GetMouseState(&mouseX, &mouseY);
+                        mouseHandle(mouseX, mouseY, win, 1);
                     }
                     break;
+                case SDL_KEYDOWN:
+                    if(evt.key.keysym.sym == SDLK_LSHIFT){
+                        if(DEBUG){
+                            showAll = !showAll;
+                            render(rnd, sprites, &showAll);
+                        }
+                    }
+                    if(evt.key.keysym.sym == SDLK_LCTRL){
+                        print_tiles();
+                    }
             }
         }
     }
@@ -417,8 +535,8 @@ int main(int argc, char** argv) {
     SDL_Quit();
     free_tiles();
 
-    for(int i = 0; i < 11; i++) SDL_DestroyTexture(sprites[i]);
-    free(win);
-    free(rnd);
+    for(int i = 0; i < sprite_count; i++) SDL_DestroyTexture(sprites[i]);
+    SDL_DestroyWindow(win);
+    SDL_DestroyRenderer(rnd);
     return 0;
 }

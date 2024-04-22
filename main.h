@@ -3,27 +3,35 @@
 #include <SDL2/SDL_image.h>
 #include <stdbool.h>
 
+#define BEFORE 0 // Game State
+#define PLAY 1
+#define BOMBED 2
+
+#define NOT_FOUND 0 // Tile state
+#define FOUND 1
+#define FLAG 2
+
 void init_tiles();
 void free_tiles();
 void fillBombs();
+void showBombs();
 int neighborBombs(int x, int y);
 SDL_Window* init_win();
 char* rtStateMsg();
-void mouseHandle(int x, int y);
+void mouseHandle(int x, int y, SDL_Window* sw, int signal); // signal 0 = left click, 1 = right click
 SDL_Texture** load_textures(int len, SDL_Renderer* renderer);
-void render(SDL_Renderer* renderer, SDL_Texture** textures);
+void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show);
+void print_tiles();
 
 typedef struct{
     short x; // there is no need for x, y to be int  given that their value will not exceed 29 (30)
     short y;
     bool bomb;
-    bool found;
-    bool show; // DEBUG PURPOSES ONLY
+    short state; // not_found, found, flag
+    short nei_bom; // neighboring bombs. It is determined in the beginning and then no longer needed.
 }Tile;
 
-enum GameState {BEFORE, PLAY, BOMBED};
-enum GameState g = BEFORE;
-
+int bombsToFind = 0, bombsFound = 0;
 int GAME_SIZE = 0;
 bool DEBUG = 0;
 Tile** tiles;
