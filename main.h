@@ -15,7 +15,7 @@ void init_tiles();
 void free_tiles();
 void fillBombs();
 void showBombs();
-int neighborBombs(int x, int y);
+short neighborBombs(int x, int y);
 SDL_Window* init_win();
 char* rtStateMsg();
 void mouseHandle(int x, int y, SDL_Window* sw, int signal); // signal 0 = left click, 1 = right click
