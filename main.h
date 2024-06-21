@@ -18,7 +18,7 @@ void showBombs();
 short neighborBombs(int x, int y);
 SDL_Window* init_win();
 char* rtStateMsg();
-void mouseHandle(int x, int y, SDL_Window* sw, int signal); // signal 0 = left click, 1 = right click
+void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show); // signal 0 = left click, 1 = right click
 SDL_Texture** load_textures(int len, SDL_Renderer* renderer);
 void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show);
 void print_tiles();
@@ -30,6 +30,12 @@ typedef struct{
     short state; // not_found, found, flag
     short nei_bom; // neighboring bombs. It is determined in the beginning and then no longer needed.
 }Tile;
+
+/*typedef struct{
+    int bombsToFind, bombsFound, GAME_SIZE;
+    bool DEBUG;
+    Tile** tiles;
+}GAME_DATA;*/
 
 int bombsToFind = 0, bombsFound = 0;
 int GAME_SIZE = 0;
