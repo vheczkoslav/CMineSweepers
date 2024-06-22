@@ -16,6 +16,7 @@ void free_tiles();
 void fillBombs();
 void showBombs();
 short neighborBombs(int x, int y);
+void showEmpty(int rx, int ry);
 SDL_Window* init_win();
 char* rtStateMsg();
 void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show); // signal 0 = left click, 1 = right click
@@ -38,6 +39,6 @@ typedef struct{
 }GAME_DATA;*/
 
 int bombsToFind = 0, bombsFound = 0;
-int GAME_SIZE = 0;
+int GAME_SIZE = 0, TILE_COLS = 0, TILE_ROWS = 0;
 bool DEBUG = 0;
 Tile** tiles;

@@ -130,7 +130,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
 void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
     int rx = x / 16, ry = y / 16;
     ifdbg printf("X: %d, Y: %d\n", rx, ry);
-    if(show){}
+    if(!show){}
     else
     if(signal == 0){ // L_CLICK
         if(g == BEFORE){
@@ -141,17 +141,85 @@ void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
             if(tiles[ry][rx].bomb){
                 g++;
                 SDL_SetWindowTitle(sw, rtStateMsg());
+                showBombs();
             }
             else{
                 tiles[ry][rx].state = FOUND;
+                if(tiles[ry][rx].nei_bom == 0) showEmpty(rx, ry);
             }
         }
         else{
-            showBombs();
+            g = 0;
+            SDL_SetWindowTitle(sw, rtStateMsg());
+            init_tiles();
         }
     }
     else{ // R_CLICK
+        if(g != BOMBED){
+            if(tiles[ry][rx].state != FLAG) {
+                tiles[ry][rx].state = FLAG;
+                if(tiles[ry][rx].bomb) bombsFound++;
+            }
+            else {
+                tiles[ry][rx].state = NOT_FOUND;
+                if(tiles[ry][rx].bomb) bombsFound--;
+            }
+        }
+    }
+}
 
+/** Show all adjacent "empty" tiles when clicked. Trivial BFS used */
+void showEmpty(int rx, int ry){
+    ifdbg printf("Show empty called!");
+    tiles[ry][rx].state = FOUND;
+    if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // T
+        showEmpty(rx, ry - 1);
+    }
+    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // D
+        showEmpty(rx, ry + 1);
+    }
+    if(rx > 0 && tiles[ry][rx - 1].state == NOT_FOUND && tiles[ry][rx - 1].nei_bom == 0){ // L
+        showEmpty(rx - 1, ry);
+    }
+    if(rx < TILE_COLS - 1 && tiles[ry][rx + 1].state == NOT_FOUND && tiles[ry][rx + 1].nei_bom == 0){ // R
+        showEmpty(rx + 1, ry);
+    }
+    if(rx > 0 && ry > 0 && tiles[ry - 1][rx - 1].state == NOT_FOUND && tiles[ry - 1][rx - 1].nei_bom == 0){ // TL
+        showEmpty(rx - 1, ry - 1);
+    }
+    if(rx < TILE_COLS - 1 && ry > 0 && tiles[ry - 1][rx + 1].state == NOT_FOUND && tiles[ry - 1][rx + 1].nei_bom == 0){ // TR
+        showEmpty(rx + 1, ry - 1);
+    }
+    if(rx > 0 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx - 1].state == NOT_FOUND && tiles[ry + 1][rx - 1].nei_bom == 0){ // DL
+        showEmpty(rx - 1, ry + 1);
+    }
+    if(rx < TILE_COLS - 1 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx + 1].state == NOT_FOUND && tiles[ry + 1][rx + 1].nei_bom == 0){ // DR
+        showEmpty(rx + 1, ry + 1);
+    }
+    // Second part of function is handling the border "empty tiles"
+    if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND){ // T
+        tiles[ry - 1][rx].state = FOUND;
+    }
+    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND){ // D
+        tiles[ry + 1][rx].state = FOUND;
+    }
+    if(rx > 0 && tiles[ry][rx - 1].state == NOT_FOUND){ // L
+        tiles[ry][rx - 1].state = FOUND;
+    }
+    if(rx < TILE_COLS - 1 && tiles[ry][rx + 1].state == NOT_FOUND){ // R
+        tiles[ry][rx + 1].state = FOUND;
+    }
+    if(rx > 0 && ry > 0 && tiles[ry - 1][rx - 1].state == NOT_FOUND){ // TL
+        tiles[ry - 1][rx - 1].state = FOUND;
+    }
+    if(rx < TILE_COLS - 1 && ry > 0 && tiles[ry - 1][rx + 1].state == NOT_FOUND){ // TR
+        tiles[ry - 1][rx + 1].state = FOUND;
+    }
+    if(rx > 0 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx - 1].state == NOT_FOUND){ // DL
+        tiles[ry + 1][rx - 1].state = FOUND;
+    }
+    if(rx < TILE_COLS - 1 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx + 1].state == NOT_FOUND){ // DR
+        tiles[ry + 1][rx + 1].state = FOUND;
     }
 }
 
@@ -176,23 +244,10 @@ SDL_Window* init_win(){
     int WIN_SIZE_X, WIN_SIZE_Y = 0;
     SDL_DisplayMode SDL_DM;
     SDL_GetCurrentDisplayMode(0, &SDL_DM);
-    switch (GAME_SIZE) {
-        case 1:
-            // 9x9tiles x 16x16px
-            WIN_SIZE_X = 144;
-            WIN_SIZE_Y = 144;
-            break;
-        case 2:
-            // 16x16tiles x 16x16px
-            WIN_SIZE_X = 256;
-            WIN_SIZE_Y = 256;
-            break;
-        case 3:
-            // 16x30tiles x 16x16px
-            WIN_SIZE_X = 480;
-            WIN_SIZE_Y = 256;
-            break;
-    }
+
+    WIN_SIZE_X = TILE_COLS * 16;
+    WIN_SIZE_Y = TILE_ROWS * 16;
+
     int window_x = (SDL_DM.w / 2) - (WIN_SIZE_X / 2);
     int window_y = (SDL_DM.h / 2) - (WIN_SIZE_Y / 2);
 
@@ -200,62 +255,20 @@ SDL_Window* init_win(){
 }
 
 void init_tiles(){
-    switch(GAME_SIZE){
-        case 1:
-            tiles = malloc(sizeof(Tile*) * 9);
-            for(int i = 0; i < 9; i++){
-                tiles[i] = malloc(sizeof(Tile) * 9);
-                for(int j = 0; j < 9; j++){
-                    tiles[i][j].state = NOT_FOUND;
-                    tiles[i][j].x = j;
-                    tiles[i][j].y = i;
-                    tiles[i][j].bomb = false;
-                }
-            }
-            break;
-        case 2:
-            tiles = malloc(sizeof(Tile*) * 16);
-            for(int i = 0; i < 16; i++){
-                tiles[i] = malloc(sizeof(Tile) * 16);
-                for(int j = 0; j < 16; j++){
-                    tiles[i][j].state = NOT_FOUND;
-                    tiles[i][j].x = j;
-                    tiles[i][j].y = i;
-                    tiles[i][j].bomb = false;
-                }
-            }
-            break;
-        case 3:
-            tiles = malloc(sizeof(Tile*) * 16);
-            for(int i = 0; i < 16; i++){ // i is y (1st dim)
-                tiles[i] = malloc(sizeof(Tile) * 30);
-                for(int j = 0; j < 30; j++){ // j is x (2nd dim)
-                    tiles[i][j].state = NOT_FOUND;
-                    tiles[i][j].x = j;
-                    tiles[i][j].y = i;
-                    tiles[i][j].bomb = false;
-                }
-            }
-            break;
+    tiles = malloc(sizeof(Tile*) * TILE_ROWS);
+    for(int i = 0; i < TILE_ROWS; i++){
+        tiles[i] = malloc(sizeof(Tile) * TILE_COLS);
+        for(int j = 0; j < TILE_COLS; j++){
+            tiles[i][j].state = NOT_FOUND;
+            tiles[i][j].x = j;
+            tiles[i][j].y = i;
+            tiles[i][j].bomb = false;
+        }
     }
     fillBombs();
-    switch(GAME_SIZE){
-        case 1:
-            for(int i = 0; i < 9; i++)
-                for(int j = 0; j < 9; j++)
-                    tiles[i][j].nei_bom = neighborBombs(j, i);
-            break;
-        case 2:
-            for(int i = 0; i < 16; i++)
-                for(int j = 0; j < 16; j++)
-                    tiles[i][j].nei_bom = neighborBombs(j, i);
-            break;
-        case 3:
-            for(int i = 0; i < 16; i++)
-                for(int j = 0; j < 30; j++)
-                    tiles[i][j].nei_bom = neighborBombs(j, i);
-            break;
-    }
+    for(int i = 0; i < TILE_ROWS; i++)
+        for(int j = 0; j < TILE_COLS; j++)
+            tiles[i][j].nei_bom = neighborBombs(j, i);
 }
 
 void fillBombs() {
@@ -272,22 +285,8 @@ void fillBombs() {
     srand(time(0)); // generates new seed for random tile index
     for(int i = 0; i < bombCount; i++){
         int rand_index = rand() % (tilesCount), rand_tile = freeTiles[rand_index];
-        int y = 0, x = 0, xlim = 0;
-        if(GAME_SIZE == 1){
-            xlim = 9;
-            x = rand_tile % xlim;
-            y = rand_tile / xlim;
-        }
-        if(GAME_SIZE == 2){
-            xlim = 16;
-            x = rand_tile % xlim;
-            y = rand_tile / xlim;
-        }
-        if(GAME_SIZE == 3){
-            xlim = 30;
-            x = rand_tile % xlim;
-            y = rand_tile / xlim;
-        }
+        int x = rand_tile % TILE_COLS;
+        int y = rand_tile / TILE_COLS;
         if(tiles[y][x].bomb != true) tiles[y][x].bomb = true;
         if(rand_index == tilesCount - 1){} // To make the print start only from the index
         else{
@@ -322,14 +321,11 @@ void free_tiles(){
 
 void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
     int x = 0, y = 0; // xlim, ylim !
-    if(GAME_SIZE == 1) x = 9, y = 9;
-    if(GAME_SIZE == 2) x = 16, y = 16;
-    if(GAME_SIZE == 3) x = 30, y = 16;
 
     SDL_RenderClear(renderer);
-    if(*show == true){
-        for(int i = 0; i < y; i++){
-            for(int j = 0; j < x; j++){
+    if(*show == true){ // DEBUG!
+        for(int i = 0; i < TILE_ROWS; i++){
+            for(int j = 0; j < TILE_COLS; j++){
                 SDL_Rect temp;
                 temp.x = j * tile_size, temp.y = i * tile_size;
                 temp.w = 16, temp.h = 16;
@@ -371,8 +367,8 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
         }
     }
     else{
-        for(int i = 0; i < y; i++){
-            for(int j = 0; j < x; j++){
+        for(int i = 0; i < TILE_ROWS; i++){
+            for(int j = 0; j < TILE_COLS; j++){
                 SDL_Rect temp;
                 temp.x = j * tile_size, temp.y = i * tile_size;
                 temp.w = 16, temp.h = 16;
@@ -424,54 +420,29 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
 
 short neighborBombs(int x, int y){
     int counter = 0;
-    int xlim = 0, ylim = 0;
-    switch(GAME_SIZE){
-        case 1:
-            xlim = 9, ylim = 9;
-            break;
-        case 2:
-            xlim = 16, ylim = 16;
-            break;
-        case 3:
-            xlim = 30, ylim = 16;
-    }
 
     if (x > 0 && tiles[y][x - 1].bomb) counter++; // L
     if (x > 0 && y > 0 && tiles[y - 1][x - 1].bomb) counter++; // TL
     if (y > 0 && tiles[y - 1][x].bomb) counter++; // T
-    if (x < xlim - 1 && y > 0 && tiles[y - 1][x + 1].bomb) counter++; // TR
-    if (x < xlim - 1 && tiles[y][x + 1].bomb) counter++; // R
-    if (x < xlim - 1 && y < ylim - 1 && tiles[y + 1][x + 1].bomb) counter++; // BR
-    if (y < ylim - 1 && tiles[y + 1][x].bomb) counter++; // B
-    if (x > 0 && y < ylim - 1 && tiles[y + 1][x - 1].bomb) counter++; // BL
+    if (x < TILE_COLS - 1 && y > 0 && tiles[y - 1][x + 1].bomb) counter++; // TR
+    if (x < TILE_COLS - 1 && tiles[y][x + 1].bomb) counter++; // R
+    if (x < TILE_COLS - 1 && y < TILE_ROWS - 1 && tiles[y + 1][x + 1].bomb) counter++; // BR
+    if (y < TILE_ROWS - 1 && tiles[y + 1][x].bomb) counter++; // B
+    if (x > 0 && y < TILE_ROWS- 1 && tiles[y + 1][x - 1].bomb) counter++; // BL
     return counter;
 }
 
 void showBombs() {
-    int xlim, ylim;
-    if (GAME_SIZE == 1) xlim = 9, ylim = 9;
-    if (GAME_SIZE == 2) xlim = 16, ylim = 16;
-    else xlim = 30, ylim = 16;
-    for(int i = 0; i < ylim; i++){
-        for(int j = 0; j < xlim; j++){
+    for(int i = 0; i < TILE_ROWS; i++){
+        for(int j = 0; j < TILE_COLS; j++){
             if(tiles[i][j].bomb) tiles[i][j].state = FOUND;
         }
     }
 }
 
 void print_tiles(){
-    int xlim = 0, ylim = 0;
-    if(GAME_SIZE == 1){
-        xlim = 9, ylim = 9;
-    }
-    if(GAME_SIZE == 2){
-        xlim = 16, ylim = 16;
-    }
-    if(GAME_SIZE == 3){
-        xlim = 30, ylim = 16;
-    }
-    for(int i = 0; i < ylim; i++){
-        for(int j = 0; j < xlim; j++) {
+    for(int i = 0; i < TILE_ROWS; i++){
+        for(int j = 0; j < TILE_COLS; j++) {
             if(!tiles[i][j].bomb){
                 printf("%hi", tiles[i][j].nei_bom);
             }
@@ -503,6 +474,19 @@ int main(int argc, char** argv) {
                 return -1;
             }
         }
+    }
+    switch(GAME_SIZE){
+        case 1:
+            TILE_ROWS = 9;
+            TILE_COLS = 9;
+        break;
+        case 2:
+            TILE_ROWS = 16;
+            TILE_COLS = 16;
+        break;
+        case 3:
+            TILE_ROWS = 16;
+            TILE_COLS = 30;
     }
 
     SDL_Init(SDL_INIT_VIDEO);
