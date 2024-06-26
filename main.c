@@ -3,7 +3,6 @@
 #include "main.h"
 #include <time.h>
 #define sprite_count 12
-#define tile_size 16
 #define ifdbg if(DEBUG == true)
 
 int g = BEFORE;
@@ -128,54 +127,55 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
 }
 
 void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
-    int rx = x / 16, ry = y / 16;
+    int rx = x / TILE_SIZE, ry = y / TILE_SIZE;
     ifdbg printf("X: %d, Y: %d\n", rx, ry);
     if(!show){}
-    else
-    if(signal == 0){ // L_CLICK
-        if(g == BEFORE){
-            g++;
-            SDL_SetWindowTitle(sw, rtStateMsg());
-        }
-        if(g == PLAY){
-            if(tiles[ry][rx].bomb){
+    else {
+        if (signal == 0) { // L_CLICK
+            if (g == BEFORE) {
                 g++;
                 SDL_SetWindowTitle(sw, rtStateMsg());
-                showBombs();
             }
-            else{
-                tiles[ry][rx].state = FOUND;
-                if(tiles[ry][rx].nei_bom == 0) showEmpty(rx, ry);
+            if (g == PLAY) {
+                if (tiles[ry][rx].bomb) {
+                    g++;
+                    SDL_SetWindowTitle(sw, rtStateMsg());
+                    showBombs();
+                } else {
+                    tiles[ry][rx].state = FOUND;
+                    if (tiles[ry][rx].nei_bom == 0) showEmpty(rx, ry);
+                }
+            } else {
+                g = 0;
+                SDL_SetWindowTitle(sw, rtStateMsg());
+                init_tiles();
             }
-        }
-        else{
-            g = 0;
-            SDL_SetWindowTitle(sw, rtStateMsg());
-            init_tiles();
+        } else { // R_CLICK
+            if (g != BOMBED) {
+                if (tiles[ry][rx].state != FLAG) {
+                    tiles[ry][rx].state = FLAG;
+                    if (tiles[ry][rx].bomb) bombsFound++;
+                } else {
+                    tiles[ry][rx].state = NOT_FOUND;
+                    if (tiles[ry][rx].bomb) bombsFound--;
+                }
+            }
+            if (bombsToFind == bombsFound) {
+                g++;
+                SDL_SetWindowTitle(sw, rtStateMsg());
+            }
         }
     }
-    else{ // R_CLICK
-        if(g != BOMBED){
-            if(tiles[ry][rx].state != FLAG) {
-                tiles[ry][rx].state = FLAG;
-                if(tiles[ry][rx].bomb) bombsFound++;
-            }
-            else {
-                tiles[ry][rx].state = NOT_FOUND;
-                if(tiles[ry][rx].bomb) bombsFound--;
-            }
-        }
-    }
+    ifdbg printf("BombsToFind: %d\nBombsFound: %d\n", bombsToFind, bombsFound);
 }
 
 /** Show all adjacent "empty" tiles when clicked. Trivial BFS used */
 void showEmpty(int rx, int ry){
-    ifdbg printf("Show empty called!");
     tiles[ry][rx].state = FOUND;
     if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // T
         showEmpty(rx, ry - 1);
     }
-    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // D
+    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND && tiles[ry + 1][rx].nei_bom == 0){ // D
         showEmpty(rx, ry + 1);
     }
     if(rx > 0 && tiles[ry][rx - 1].state == NOT_FOUND && tiles[ry][rx - 1].nei_bom == 0){ // L
@@ -245,8 +245,8 @@ SDL_Window* init_win(){
     SDL_DisplayMode SDL_DM;
     SDL_GetCurrentDisplayMode(0, &SDL_DM);
 
-    WIN_SIZE_X = TILE_COLS * 16;
-    WIN_SIZE_Y = TILE_ROWS * 16;
+    WIN_SIZE_X = TILE_COLS * TILE_SIZE;
+    WIN_SIZE_Y = TILE_ROWS * TILE_SIZE;
 
     int window_x = (SDL_DM.w / 2) - (WIN_SIZE_X / 2);
     int window_y = (SDL_DM.h / 2) - (WIN_SIZE_Y / 2);
@@ -291,11 +291,11 @@ void fillBombs() {
         if(rand_index == tilesCount - 1){} // To make the print start only from the index
         else{
             for(int j = rand_index; j < tilesCount - 1; j++) {
-                ifdbg printf("Before tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
+                //ifdbg printf("Before tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
                 freeTiles[j] = freeTiles[j + 1];
-                ifdbg printf("After tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
+                //ifdbg printf("After tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
             }
-            ifdbg printf("Cycle no: %d\n", i);
+            //ifdbg printf("Cycle no: %d\n", i);
         }
         tilesCount--;
     }
@@ -303,18 +303,8 @@ void fillBombs() {
 }
 
 void free_tiles(){
-    switch(GAME_SIZE){
-        case 1:
-            for(int i = 0; i < 9; i++){
-                free(tiles[i]);
-            }
-            break;
-        case 2:
-        case 3:
-            for(int i = 0; i < 16; i++){
-                free(tiles[i]);
-            }
-            break;
+    for(int i = 0; i < TILE_ROWS; i++){
+        free(tiles[i]);
     }
     free(tiles);
 }
@@ -327,8 +317,8 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
         for(int i = 0; i < TILE_ROWS; i++){
             for(int j = 0; j < TILE_COLS; j++){
                 SDL_Rect temp;
-                temp.x = j * tile_size, temp.y = i * tile_size;
-                temp.w = 16, temp.h = 16;
+                temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
+                temp.w = TILE_SIZE, temp.h = TILE_SIZE;
                 if(!tiles[i][j].bomb){
                     switch(tiles[i][j].nei_bom){
                         case 0:
@@ -370,8 +360,8 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
         for(int i = 0; i < TILE_ROWS; i++){
             for(int j = 0; j < TILE_COLS; j++){
                 SDL_Rect temp;
-                temp.x = j * tile_size, temp.y = i * tile_size;
-                temp.w = 16, temp.h = 16;
+                temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
+                temp.w = TILE_SIZE, temp.h = TILE_SIZE;
                 if(tiles[i][j].state == NOT_FOUND) {
                     SDL_RenderCopy(renderer, textures[0], NULL, &temp);
                 }
@@ -420,7 +410,6 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
 
 short neighborBombs(int x, int y){
     int counter = 0;
-
     if (x > 0 && tiles[y][x - 1].bomb) counter++; // L
     if (x > 0 && y > 0 && tiles[y - 1][x - 1].bomb) counter++; // TL
     if (y > 0 && tiles[y - 1][x].bomb) counter++; // T
@@ -454,27 +443,60 @@ void print_tiles(){
     }
 }
 
+void parseSettings(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+    char line[256];
+
+    // Read and parse the TILE_SIZE line
+    if (fgets(line, sizeof(line), file)) {
+        char *equals_sign = strchr(line, '=');
+        if (equals_sign != NULL) {
+            int value = atoi(equals_sign + 1);
+            if (value % 8 != 0) {
+                printf("Incorrect tile size!\n");
+                exit(-1);
+            }
+            TILE_SIZE = value;
+            ifdbg printf("Parsed TILE_SIZE: %d\n", value);
+        }
+    }
+
+    // Read and parse the GAME_SIZE line
+    if (fgets(line, sizeof(line), file)) {
+        char *equals_sign = strchr(line, '=');
+        if (equals_sign != NULL) {
+            int value = atoi(equals_sign + 1);
+            if (value < 1 || value > 3) {
+                printf("Incorrect game size!\n");
+                exit(-1);
+            }
+            GAME_SIZE = value;
+            ifdbg printf("Parsed GAME_SIZE: %d\n", value);
+        }
+    }
+
+    // Read and parse the DEBUG line
+    if (fgets(line, sizeof(line), file)) {
+        char *equals_sign = strchr(line, '=');
+        if (equals_sign != NULL) {
+            int value = atoi(equals_sign + 1);
+            if (value < 0 || value > 1) {
+                printf("Invalid debug mode!\n");
+                exit(-1);
+            }
+            DEBUG = value;
+            ifdbg printf("Parsed DEBUG: %d\n", value);
+        }
+    }
+    fclose(file);
+}
+
 int main(int argc, char** argv) {
-    if(argc < 2 || argc > 3){
-        printf("Incorrect amount of parameters! Look into README.md...\n");
-        return -1;
-    }
-    else{
-        GAME_SIZE = atoi(argv[1]);
-        if(GAME_SIZE < 1 || GAME_SIZE > 3){
-            printf("Incorrect map size/difficulty!\n");
-            return -1;
-        }
-        if(argc == 3){
-            if(strcmp("-d", argv[2]) == 0 || strcmp("--debug", argv[2]) == 0){
-                DEBUG = 1;
-            }
-            else{
-                printf("Incorrect voluntary parameter!\n");
-                return -1;
-            }
-        }
-    }
+    parseSettings("settings.txt");
     switch(GAME_SIZE){
         case 1:
             TILE_ROWS = 9;
@@ -537,10 +559,13 @@ int main(int argc, char** argv) {
                     if(evt.key.keysym.sym == SDLK_LCTRL){
                         print_tiles();
                     }
+                    if(evt.key.keysym.sym == SDLK_F5){
+                        init_tiles();
+                        render(rnd, sprites, &showAll);
+                    }
             }
         }
     }
-
     SDL_Quit();
     free_tiles();
 

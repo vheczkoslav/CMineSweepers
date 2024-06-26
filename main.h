@@ -11,6 +11,7 @@
 #define FOUND 1
 #define FLAG 2
 
+void load_settings(const char* filename);
 void init_tiles();
 void free_tiles();
 void fillBombs();
@@ -39,6 +40,6 @@ typedef struct{
 }GAME_DATA;*/
 
 int bombsToFind = 0, bombsFound = 0;
-int GAME_SIZE = 0, TILE_COLS = 0, TILE_ROWS = 0;
+int GAME_SIZE = 0, TILE_COLS = 0, TILE_ROWS = 0, TILE_SIZE = 0;
 bool DEBUG = 0;
 Tile** tiles;
