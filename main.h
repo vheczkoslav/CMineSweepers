@@ -11,18 +11,24 @@
 #define FOUND 1
 #define FLAG 2
 
+typedef struct{
+    int x,
+    y,
+    z;
+}pos;
+
 void load_settings(const char* filename);
 void init_tiles();
 void free_tiles();
 void fillBombs();
 void showBombs();
-short neighborBombs(int x, int y);
-void showEmpty(int rx, int ry);
+short neighborBombs(pos p);
+void showEmpty(pos rp);
 SDL_Window* init_win();
 char* rtStateMsg();
-void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show); // signal 0 = left click, 1 = right click
+void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show); // signal 0 = left click, 1 = right click
 SDL_Texture** load_textures(int len, SDL_Renderer* renderer);
-void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show);
+void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int currZ);
 void print_tiles();
 
 typedef struct{
@@ -40,6 +46,6 @@ typedef struct{
 }GAME_DATA;*/
 
 int bombsToFind = 0, bombsFound = 0;
-int GAME_SIZE = 0, TILE_COLS = 0, TILE_ROWS = 0, TILE_SIZE = 0;
+int GAME_SIZE = 0, TILE_COLS = 0, TILE_ROWS = 0, TILE_LEVELS = 0, TILE_SIZE = 0;
 bool DEBUG = 0;
-Tile** tiles;
+Tile*** tiles;

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "main.h"
 #include <time.h>
-#define sprite_count 12
+#define sprite_count 30
 #define ifdbg if(DEBUG == true)
 
 int g = BEFORE;
@@ -11,123 +11,60 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
     SDL_Texture** textures = malloc(len * sizeof(SDL_Texture*));
     SDL_Surface *tmp;
     for(int i = 0; i < len; i++){
-        switch(i){
-            case 0:
-                tmp = IMG_Load("sprites/hidden.png");
-                textures[0] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 1:
-                tmp = IMG_Load("sprites/bomb.png");
-                textures[1] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 2:
-                tmp = IMG_Load("sprites/flag.png");
-                textures[2] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 3:
-                tmp = IMG_Load("sprites/one.png");
-                textures[3] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 4:
-                tmp = IMG_Load("sprites/two.png");
-                textures[4] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 5:
-                tmp = IMG_Load("sprites/three.png");
-                textures[5] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 6:
-                tmp = IMG_Load("sprites/four.png");
-                textures[6] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 7:
-                tmp = IMG_Load("sprites/five.png");
-                textures[7] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 8:
-                tmp = IMG_Load("sprites/six.png");
-                textures[8] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 9:
-                tmp = IMG_Load("sprites/seven.png");
-                textures[9] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 10:
-                tmp = IMG_Load("sprites/eight.png");
-                textures[10] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
-            case 11:
-                tmp = IMG_Load("sprites/found.png");
-                textures[11] = SDL_CreateTextureFromSurface(renderer, tmp);
-                if( tmp == NULL )
-                {
-                    printf( "Unable to load image[%d]\n", i);
-                    exit(-1);
-                }
-                break;
+        if(i < 26){
+            char ind[2];
+            sprintf(ind, "%d", i + 1);
+            char path[64] = "sprites/";
+            strcat(path, ind);
+            char ending[16] = ".png";
+            strcat(path, ending);
+            tmp = IMG_Load(path);
+            if(tmp == NULL){
+                printf("Unable to load image[%d]: %s\n", i, path);
+                exit(-1);
+            }
+            continue;
+        }
+        else{
+            switch(i){
+                case 26:
+                    tmp = IMG_Load("sprites/bomb.png");
+                    if(tmp == NULL){
+                        printf("Unable to load image[%d]\n", i);
+                        exit(-1);
+                    }
+                    continue;
+                case 27:
+                    tmp = IMG_Load("sprites/flag.png");
+                    if(tmp == NULL){
+                        printf("Unable to load image[%d]\n", i);
+                        exit(-1);
+                    }
+                    continue;
+                case 28:
+                    tmp = IMG_Load("sprites/found.png");
+                    if(tmp == NULL){
+                        printf("Unable to load image[%d]\n", i);
+                        exit(-1);
+                    }
+                    continue;
+                case 29:
+                    tmp = IMG_Load("sprites/hidden.png");
+                    if(tmp == NULL){
+                        printf("Unable to load image[%d]\n", i);
+                        exit(-1);
+                    }
+                    continue;
+            }
         }
     }
     free(tmp);
     return textures;
 }
 
-void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
-    int rx = x / TILE_SIZE, ry = y / TILE_SIZE;
+void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show) {
+    int rx = p.x / TILE_SIZE, ry = p.y / TILE_SIZE, rz = p.z / TILE_SIZE;
+    pos rp = {rx, ry, rz};
     ifdbg printf("X: %d, Y: %d\n", rx, ry);
     if(!show){}
     else {
@@ -137,13 +74,13 @@ void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
                 SDL_SetWindowTitle(sw, rtStateMsg());
             }
             if (g == PLAY) {
-                if (tiles[ry][rx].bomb) {
+                if (tiles[rz][ry][rx].bomb) {
                     g++;
                     SDL_SetWindowTitle(sw, rtStateMsg());
                     showBombs();
                 } else {
-                    tiles[ry][rx].state = FOUND;
-                    if (tiles[ry][rx].nei_bom == 0) showEmpty(rx, ry);
+                    tiles[rz][ry][rx].state = FOUND;
+                    if (tiles[rz][ry][rx].nei_bom == 0) showEmpty(rp);
                 }
             } else {
                 g = 0;
@@ -152,12 +89,12 @@ void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
             }
         } else { // R_CLICK
             if (g != BOMBED) {
-                if (tiles[ry][rx].state != FLAG) {
-                    tiles[ry][rx].state = FLAG;
-                    if (tiles[ry][rx].bomb) bombsFound++;
+                if (tiles[rz][ry][rx].state != FLAG) {
+                    tiles[rz][ry][rx].state = FLAG;
+                    if (tiles[rz][ry][rx].bomb) bombsFound++;
                 } else {
-                    tiles[ry][rx].state = NOT_FOUND;
-                    if (tiles[ry][rx].bomb) bombsFound--;
+                    tiles[rz][ry][rx].state = NOT_FOUND;
+                    if (tiles[rz][ry][rx].bomb) bombsFound--;
                 }
             }
             if (bombsToFind == bombsFound) {
@@ -170,9 +107,9 @@ void mouseHandle(int x, int y, SDL_Window* sw, int signal, bool* show) {
 }
 
 /** Show all adjacent "empty" tiles when clicked. Trivial BFS used */
-void showEmpty(int rx, int ry){
-    tiles[ry][rx].state = FOUND;
-    if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // T
+void showEmpty(pos rp){
+    tiles[rp.z][rp.y][rp.x].state = FOUND;
+    /*if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // T
         showEmpty(rx, ry - 1);
     }
     if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND && tiles[ry + 1][rx].nei_bom == 0){ // D
@@ -220,7 +157,7 @@ void showEmpty(int rx, int ry){
     }
     if(rx < TILE_COLS - 1 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx + 1].state == NOT_FOUND){ // DR
         tiles[ry + 1][rx + 1].state = FOUND;
-    }
+    }*/
 }
 
 char* rtStateMsg(){
@@ -256,26 +193,33 @@ SDL_Window* init_win(){
 
 void init_tiles(){
     tiles = malloc(sizeof(Tile*) * TILE_ROWS);
-    for(int i = 0; i < TILE_ROWS; i++){
-        tiles[i] = malloc(sizeof(Tile) * TILE_COLS);
-        for(int j = 0; j < TILE_COLS; j++){
-            tiles[i][j].state = NOT_FOUND;
-            tiles[i][j].x = j;
-            tiles[i][j].y = i;
-            tiles[i][j].bomb = false;
+    for(int h = 0; h < TILE_LEVELS; h++){
+        for(int i = 0; i < TILE_ROWS; i++){
+            tiles[i] = malloc(sizeof(Tile) * TILE_COLS);
+            for(int j = 0; j < TILE_COLS; j++){
+                tiles[h][i][j].state = NOT_FOUND;
+                tiles[h][i][j].x = j;
+                tiles[h][i][j].y = i;
+                tiles[h][i][j].bomb = false;
+            }
         }
     }
     fillBombs();
-    for(int i = 0; i < TILE_ROWS; i++)
-        for(int j = 0; j < TILE_COLS; j++)
-            tiles[i][j].nei_bom = neighborBombs(j, i);
+    for(int h = 0; h < TILE_LEVELS; h++) {
+        for (int i = 0; i < TILE_ROWS; i++) {
+            for (int j = 0; j < TILE_COLS; j++) {
+                pos p = {j, i, h};
+                tiles[h][i][j].nei_bom = neighborBombs(p);
+            }
+        }
+    }
 }
 
 void fillBombs() {
     int tilesCount = 0; int bombCount = 0;
-    if(GAME_SIZE == 1) tilesCount = 81, bombCount = 10, bombsToFind = bombCount;
-    if(GAME_SIZE == 2) tilesCount = 256, bombCount = 40, bombsToFind = bombCount;
-    if(GAME_SIZE == 3) tilesCount = 480, bombCount = 99, bombsToFind = bombCount;
+    if(GAME_SIZE == 1) tilesCount = 243, bombCount = 30, bombsToFind = bombCount;
+    if(GAME_SIZE == 2) tilesCount = 1280, bombCount = 200, bombsToFind = bombCount;
+    if(GAME_SIZE == 3) tilesCount = 3360, bombCount = 700, bombsToFind = bombCount;
     int* freeTiles = malloc(sizeof(int) * tilesCount); // 1D representation index representation of 2D index of Tile
 
     for(int i = 0; i < tilesCount; i++){
@@ -285,9 +229,10 @@ void fillBombs() {
     srand(time(0)); // generates new seed for random tile index
     for(int i = 0; i < bombCount; i++){
         int rand_index = rand() % (tilesCount), rand_tile = freeTiles[rand_index];
+        int z = rand_tile / (TILE_ROWS * TILE_COLS);
+        int y = (rand_tile % (TILE_ROWS * TILE_COLS)) / TILE_COLS;
         int x = rand_tile % TILE_COLS;
-        int y = rand_tile / TILE_COLS;
-        if(tiles[y][x].bomb != true) tiles[y][x].bomb = true;
+        if(tiles[z][y][x].bomb != true) tiles[z][y][x].bomb = true;
         if(rand_index == tilesCount - 1){} // To make the print start only from the index
         else{
             for(int j = rand_index; j < tilesCount - 1; j++) {
@@ -309,7 +254,7 @@ void free_tiles(){
     free(tiles);
 }
 
-void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
+void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int currZ){
     int x = 0, y = 0; // xlim, ylim !
 
     SDL_RenderClear(renderer);
@@ -319,36 +264,8 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
                 SDL_Rect temp;
                 temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
                 temp.w = TILE_SIZE, temp.h = TILE_SIZE;
-                if(!tiles[i][j].bomb){
-                    switch(tiles[i][j].nei_bom){
-                        case 0:
-                            SDL_RenderCopy(renderer, textures[11], NULL, &temp);
-                            break;
-                        case 1:
-                            SDL_RenderCopy(renderer, textures[3], NULL, &temp);
-                            break;
-                        case 2:
-                            SDL_RenderCopy(renderer, textures[4], NULL, &temp);
-                            break;
-                        case 3:
-                            SDL_RenderCopy(renderer, textures[5], NULL, &temp);
-                            break;
-                        case 4:
-                            SDL_RenderCopy(renderer, textures[6], NULL, &temp);
-                            break;
-                        case 5:
-                            SDL_RenderCopy(renderer, textures[7], NULL, &temp);
-                            break;
-                        case 6:
-                            SDL_RenderCopy(renderer, textures[8], NULL, &temp);
-                            break;
-                        case 7:
-                            SDL_RenderCopy(renderer, textures[9], NULL, &temp);
-                            break;
-                        case 8:
-                            SDL_RenderCopy(renderer, textures[10], NULL, &temp);
-                            break;
-                    }
+                if(!tiles[currZ][i][j].bomb){
+                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
                 }
                 else{
                     SDL_RenderCopy(renderer, textures[1], NULL, &temp);
@@ -362,44 +279,18 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
                 SDL_Rect temp;
                 temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
                 temp.w = TILE_SIZE, temp.h = TILE_SIZE;
-                if(tiles[i][j].state == NOT_FOUND) {
+                if(tiles[currZ][i][j].state == NOT_FOUND) {
                     SDL_RenderCopy(renderer, textures[0], NULL, &temp);
                 }
-                else if(tiles[i][j].state == FOUND && !tiles[i][j].bomb){
-                    switch(tiles[i][j].nei_bom){
-                        case 0:
-                            SDL_RenderCopy(renderer, textures[11], NULL, &temp);
-                            break;
-                        case 1:
-                            SDL_RenderCopy(renderer, textures[3], NULL, &temp);
-                            break;
-                        case 2:
-                            SDL_RenderCopy(renderer, textures[4], NULL, &temp);
-                            break;
-                        case 3:
-                            SDL_RenderCopy(renderer, textures[5], NULL, &temp);
-                            break;
-                        case 4:
-                            SDL_RenderCopy(renderer, textures[6], NULL, &temp);
-                            break;
-                        case 5:
-                            SDL_RenderCopy(renderer, textures[7], NULL, &temp);
-                            break;
-                        case 6:
-                            SDL_RenderCopy(renderer, textures[8], NULL, &temp);
-                            break;
-                        case 7:
-                            SDL_RenderCopy(renderer, textures[9], NULL, &temp);
-                            break;
-                        case 8:
-                            SDL_RenderCopy(renderer, textures[10], NULL, &temp);
-                            break;
+                else if(tiles[currZ][i][j].state == FOUND && !tiles[currZ][i][j].bomb){
+                    switch(tiles[currZ][i][j].nei_bom){
+                        SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
                     }
                 }
-                else if(tiles[i][j].state == FOUND && tiles[i][j].bomb){
+                else if(tiles[currZ][i][j].state == FOUND && tiles[currZ][i][j].bomb){
                     SDL_RenderCopy(renderer, textures[1], NULL, &temp);
                 }
-                else if(tiles[i][j].state == FLAG){
+                else if(tiles[currZ][i][j].state == FLAG){
                     SDL_RenderCopy(renderer, textures[2], NULL, &temp);
                 }
             }
@@ -408,38 +299,56 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show){
     SDL_RenderPresent(renderer);
 }
 
-short neighborBombs(int x, int y){
+short neighborBombs(pos p){
     int counter = 0;
-    if (x > 0 && tiles[y][x - 1].bomb) counter++; // L
-    if (x > 0 && y > 0 && tiles[y - 1][x - 1].bomb) counter++; // TL
-    if (y > 0 && tiles[y - 1][x].bomb) counter++; // T
-    if (x < TILE_COLS - 1 && y > 0 && tiles[y - 1][x + 1].bomb) counter++; // TR
-    if (x < TILE_COLS - 1 && tiles[y][x + 1].bomb) counter++; // R
-    if (x < TILE_COLS - 1 && y < TILE_ROWS - 1 && tiles[y + 1][x + 1].bomb) counter++; // BR
-    if (y < TILE_ROWS - 1 && tiles[y + 1][x].bomb) counter++; // B
-    if (x > 0 && y < TILE_ROWS- 1 && tiles[y + 1][x - 1].bomb) counter++; // BL
+    int x = p.x;
+    int y = p.y;
+    int z = p.z;
+
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0 && dz == 0) continue; // Skip the current tile
+                int nx = x + dx;
+                int ny = y + dy;
+                int nz = z + dz;
+
+                if (nx >= 0 && nx < TILE_COLS && ny >= 0 && ny < TILE_ROWS && nz >= 0 && nz < TILE_LEVELS) {
+                    if (tiles[nz][ny][nx].bomb) {
+                        counter++;
+                    }
+                }
+            }
+        }
+    }
+
     return counter;
 }
 
+
 void showBombs() {
-    for(int i = 0; i < TILE_ROWS; i++){
-        for(int j = 0; j < TILE_COLS; j++){
-            if(tiles[i][j].bomb) tiles[i][j].state = FOUND;
+    for(int h = 0; h < TILE_LEVELS; h++){
+        for(int i = 0; i < TILE_ROWS; i++){
+            for(int j = 0; j < TILE_COLS; j++){
+                if(tiles[h][i][j].bomb) tiles[h][i][j].state = FOUND;
+            }
         }
     }
 }
 
 void print_tiles(){
-    for(int i = 0; i < TILE_ROWS; i++){
-        for(int j = 0; j < TILE_COLS; j++) {
-            if(!tiles[i][j].bomb){
-                printf("%hi", tiles[i][j].nei_bom);
+    for(int h = 0; h < TILE_LEVELS; h++){
+        for(int i = 0; i < TILE_ROWS; i++){
+            for(int j = 0; j < TILE_COLS; j++) {
+                if(!tiles[h][i][j].bomb){
+                    printf("%hi", tiles[h][i][j].nei_bom);
+                }
+                else{
+                    printf("B");
+                }
             }
-            else{
-                printf("B");
-            }
+            printf("\n");
         }
-        printf("\n");
     }
 }
 
@@ -501,14 +410,17 @@ int main(int argc, char** argv) {
         case 1:
             TILE_ROWS = 9;
             TILE_COLS = 9;
+            TILE_LEVELS = 3;
         break;
         case 2:
             TILE_ROWS = 16;
             TILE_COLS = 16;
+            TILE_LEVELS = 5;
         break;
         case 3:
             TILE_ROWS = 16;
             TILE_COLS = 30;
+            TILE_LEVELS = 7;
     }
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -526,7 +438,8 @@ int main(int argc, char** argv) {
 
     init_tiles();
     bool showAll = false;
-    render(rnd, sprites, &showAll);
+    int currentZ = TILE_LEVELS / 2;
+    render(rnd, sprites, &showAll, currentZ);
     while(running){
         while(SDL_PollEvent( &evt ) != 0){
             switch(evt.type){
@@ -537,14 +450,16 @@ int main(int argc, char** argv) {
                 case SDL_MOUSEBUTTONDOWN:
                     int mouseX = 0, mouseY = 0;
                     if(SDL_BUTTON_LEFT == evt.button.button){ // if (evt.button.type == ...)
+                        pos p = {mouseX, mouseY, currentZ};
                         SDL_GetMouseState(&mouseX, &mouseY);
-                        mouseHandle(mouseX, mouseY, win, 0, &showAll);
-                        render(rnd, sprites, &showAll);
+                        mouseHandle(p, win, 0, &showAll);
+                        render(rnd, sprites, &showAll, currentZ);
                     }
                     if(SDL_BUTTON_RIGHT == evt.button.button){
+                        pos p = {mouseX, mouseY, currentZ};
                         SDL_GetMouseState(&mouseX, &mouseY);
-                        mouseHandle(mouseX, mouseY, win, 1, &showAll);
-                        render(rnd, sprites, &showAll);
+                        mouseHandle(p, win, 1, &showAll);
+                        render(rnd, sprites, &showAll, currentZ);
                     }
                     break;
                 case SDL_KEYDOWN:
@@ -553,7 +468,7 @@ int main(int argc, char** argv) {
                             showAll = !showAll;
                             if(showAll == true) printf("All showed!\n");
                             else printf("All hidden!\n");
-                            render(rnd, sprites, &showAll);
+                            render(rnd, sprites, &showAll, currentZ);
                         }
                     }
                     if(evt.key.keysym.sym == SDLK_LCTRL){
@@ -561,7 +476,7 @@ int main(int argc, char** argv) {
                     }
                     if(evt.key.keysym.sym == SDLK_F5){
                         init_tiles();
-                        render(rnd, sprites, &showAll);
+                        render(rnd, sprites, &showAll, currentZ);
                     }
             }
         }
