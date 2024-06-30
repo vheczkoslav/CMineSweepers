@@ -42,7 +42,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                     }
                     continue;
                 case 28:
-                    tmp = IMG_Load("sprites/found.png");
+                    tmp = IMG_Load("sprites/0.png");
                     if(tmp == NULL){
                         printf("Unable to load image[%d]\n", i);
                         exit(-1);
@@ -107,57 +107,34 @@ void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show) {
 }
 
 /** Show all adjacent "empty" tiles when clicked. Trivial BFS used */
-void showEmpty(pos rp){
-    tiles[rp.z][rp.y][rp.x].state = FOUND;
-    /*if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND && tiles[ry - 1][rx].nei_bom == 0){ // T
-        showEmpty(rx, ry - 1);
+void showEmpty(pos rp) {
+    int x = rp.x;
+    int y = rp.y;
+    int z = rp.z;
+
+    tiles[z][y][x].state = FOUND;
+
+    // Check all 26 neighbors in 3D space
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dz == 0 && dy == 0 && dx == 0) continue; // Skip the current tile
+
+                int nz = z + dz;
+                int ny = y + dy;
+                int nx = x + dx;
+
+                // Bounds checking
+                if (nz >= 0 && nz < TILE_LEVELS && ny >= 0 && ny < TILE_ROWS && nx >= 0 && nx < TILE_COLS) {
+                    if (tiles[nz][ny][nx].state == NOT_FOUND && tiles[nz][ny][nx].nei_bom == 0) {
+                        showEmpty((pos){.x = nx, .y = ny, .z = nz});
+                    } else if (tiles[nz][ny][nx].state == NOT_FOUND) {
+                        tiles[nz][ny][nx].state = FOUND;
+                    }
+                }
+            }
+        }
     }
-    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND && tiles[ry + 1][rx].nei_bom == 0){ // D
-        showEmpty(rx, ry + 1);
-    }
-    if(rx > 0 && tiles[ry][rx - 1].state == NOT_FOUND && tiles[ry][rx - 1].nei_bom == 0){ // L
-        showEmpty(rx - 1, ry);
-    }
-    if(rx < TILE_COLS - 1 && tiles[ry][rx + 1].state == NOT_FOUND && tiles[ry][rx + 1].nei_bom == 0){ // R
-        showEmpty(rx + 1, ry);
-    }
-    if(rx > 0 && ry > 0 && tiles[ry - 1][rx - 1].state == NOT_FOUND && tiles[ry - 1][rx - 1].nei_bom == 0){ // TL
-        showEmpty(rx - 1, ry - 1);
-    }
-    if(rx < TILE_COLS - 1 && ry > 0 && tiles[ry - 1][rx + 1].state == NOT_FOUND && tiles[ry - 1][rx + 1].nei_bom == 0){ // TR
-        showEmpty(rx + 1, ry - 1);
-    }
-    if(rx > 0 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx - 1].state == NOT_FOUND && tiles[ry + 1][rx - 1].nei_bom == 0){ // DL
-        showEmpty(rx - 1, ry + 1);
-    }
-    if(rx < TILE_COLS - 1 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx + 1].state == NOT_FOUND && tiles[ry + 1][rx + 1].nei_bom == 0){ // DR
-        showEmpty(rx + 1, ry + 1);
-    }
-    // Second part of function is handling the border "empty tiles"
-    if(ry > 0 && tiles[ry - 1][rx].state == NOT_FOUND){ // T
-        tiles[ry - 1][rx].state = FOUND;
-    }
-    if(ry < TILE_ROWS - 1 && tiles[ry + 1][rx].state == NOT_FOUND){ // D
-        tiles[ry + 1][rx].state = FOUND;
-    }
-    if(rx > 0 && tiles[ry][rx - 1].state == NOT_FOUND){ // L
-        tiles[ry][rx - 1].state = FOUND;
-    }
-    if(rx < TILE_COLS - 1 && tiles[ry][rx + 1].state == NOT_FOUND){ // R
-        tiles[ry][rx + 1].state = FOUND;
-    }
-    if(rx > 0 && ry > 0 && tiles[ry - 1][rx - 1].state == NOT_FOUND){ // TL
-        tiles[ry - 1][rx - 1].state = FOUND;
-    }
-    if(rx < TILE_COLS - 1 && ry > 0 && tiles[ry - 1][rx + 1].state == NOT_FOUND){ // TR
-        tiles[ry - 1][rx + 1].state = FOUND;
-    }
-    if(rx > 0 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx - 1].state == NOT_FOUND){ // DL
-        tiles[ry + 1][rx - 1].state = FOUND;
-    }
-    if(rx < TILE_COLS - 1 && ry < TILE_ROWS - 1 && tiles[ry + 1][rx + 1].state == NOT_FOUND){ // DR
-        tiles[ry + 1][rx + 1].state = FOUND;
-    }*/
 }
 
 char* rtStateMsg(){
@@ -191,24 +168,28 @@ SDL_Window* init_win(){
     return SDL_CreateWindow(rtStateMsg(), window_x, window_y, WIN_SIZE_X, WIN_SIZE_Y, SDL_WINDOW_SHOWN);
 }
 
-void init_tiles(){
-    tiles = malloc(sizeof(Tile*) * TILE_ROWS);
-    for(int h = 0; h < TILE_LEVELS; h++){
-        for(int i = 0; i < TILE_ROWS; i++){
-            tiles[i] = malloc(sizeof(Tile) * TILE_COLS);
-            for(int j = 0; j < TILE_COLS; j++){
+void init_tiles() {
+    tiles = malloc(sizeof(Tile**) * TILE_LEVELS);
+    for (int h = 0; h < TILE_LEVELS; h++) {
+        tiles[h] = malloc(sizeof(Tile*) * TILE_ROWS);
+        for (int i = 0; i < TILE_ROWS; i++) {
+            tiles[h][i] = malloc(sizeof(Tile) * TILE_COLS);
+            for (int j = 0; j < TILE_COLS; j++) {
                 tiles[h][i][j].state = NOT_FOUND;
                 tiles[h][i][j].x = j;
                 tiles[h][i][j].y = i;
+                tiles[h][i][j].z = h;
                 tiles[h][i][j].bomb = false;
             }
         }
     }
-    fillBombs();
-    for(int h = 0; h < TILE_LEVELS; h++) {
+
+    //fillBombs();
+
+    for (int h = 0; h < TILE_LEVELS; h++) {
         for (int i = 0; i < TILE_ROWS; i++) {
             for (int j = 0; j < TILE_COLS; j++) {
-                pos p = {j, i, h};
+                pos p = { .x = j, .y = i, .z = h };
                 tiles[h][i][j].nei_bom = neighborBombs(p);
             }
         }
@@ -229,16 +210,21 @@ void fillBombs() {
     srand(time(0)); // generates new seed for random tile index
     for(int i = 0; i < bombCount; i++){
         int rand_index = rand() % (tilesCount), rand_tile = freeTiles[rand_index];
+        printf("%d, %d, ", i, rand_index);
         int z = rand_tile / (TILE_ROWS * TILE_COLS);
-        int y = (rand_tile % (TILE_ROWS * TILE_COLS)) / TILE_COLS;
+        int y = (rand_tile / TILE_COLS) % TILE_ROWS;
         int x = rand_tile % TILE_COLS;
+        printf("%d, %d, %d\n", x, y, z);
         if(tiles[z][y][x].bomb != true) tiles[z][y][x].bomb = true;
+        else {i--; continue;}
+        printf("check ok\n");
         if(rand_index == tilesCount - 1){} // To make the print start only from the index
         else{
             for(int j = rand_index; j < tilesCount - 1; j++) {
                 //ifdbg printf("Before tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
                 freeTiles[j] = freeTiles[j + 1];
                 //ifdbg printf("After tiles[%d] = %d, tiles[%d] = %d\n", j, freeTiles[j], j + 1, freeTiles[j + 1]);
+                //ifdbg printf("Cyclo no: %d, %d\n", i, j);
             }
             //ifdbg printf("Cycle no: %d\n", i);
         }
@@ -255,14 +241,12 @@ void free_tiles(){
 }
 
 void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int currZ){
-    int x = 0, y = 0; // xlim, ylim !
-
     SDL_RenderClear(renderer);
     if(*show == true){ // DEBUG!
         for(int i = 0; i < TILE_ROWS; i++){
             for(int j = 0; j < TILE_COLS; j++){
                 SDL_Rect temp;
-                temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
+                temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE; // Z must NOT be used!
                 temp.w = TILE_SIZE, temp.h = TILE_SIZE;
                 if(!tiles[currZ][i][j].bomb){
                     SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
@@ -283,9 +267,7 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int curr
                     SDL_RenderCopy(renderer, textures[0], NULL, &temp);
                 }
                 else if(tiles[currZ][i][j].state == FOUND && !tiles[currZ][i][j].bomb){
-                    switch(tiles[currZ][i][j].nei_bom){
-                        SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
-                    }
+                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
                 }
                 else if(tiles[currZ][i][j].state == FOUND && tiles[currZ][i][j].bomb){
                     SDL_RenderCopy(renderer, textures[1], NULL, &temp);
@@ -450,14 +432,14 @@ int main(int argc, char** argv) {
                 case SDL_MOUSEBUTTONDOWN:
                     int mouseX = 0, mouseY = 0;
                     if(SDL_BUTTON_LEFT == evt.button.button){ // if (evt.button.type == ...)
-                        pos p = {mouseX, mouseY, currentZ};
                         SDL_GetMouseState(&mouseX, &mouseY);
+                        pos p = {mouseX, mouseY, currentZ};
                         mouseHandle(p, win, 0, &showAll);
                         render(rnd, sprites, &showAll, currentZ);
                     }
                     if(SDL_BUTTON_RIGHT == evt.button.button){
-                        pos p = {mouseX, mouseY, currentZ};
                         SDL_GetMouseState(&mouseX, &mouseY);
+                        pos p = {mouseX, mouseY, currentZ};
                         mouseHandle(p, win, 1, &showAll);
                         render(rnd, sprites, &showAll, currentZ);
                     }
@@ -476,6 +458,14 @@ int main(int argc, char** argv) {
                     }
                     if(evt.key.keysym.sym == SDLK_F5){
                         init_tiles();
+                        render(rnd, sprites, &showAll, currentZ);
+                    }
+                    if(evt.key.keysym.sym == SDLK_q){ // get into upper level
+                        if(currentZ > 0) currentZ--;
+                        render(rnd, sprites, &showAll, currentZ);
+                    }
+                    if(evt.key.keysym.sym == SDLK_e) {// get into lower level
+                        if(currentZ < TILE_LEVELS - 1) currentZ++;
                         render(rnd, sprites, &showAll, currentZ);
                     }
             }

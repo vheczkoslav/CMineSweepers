@@ -34,6 +34,7 @@ void print_tiles();
 typedef struct{
     short x; // there is no need for x, y to be int  given that their value will not exceed 29 (30)
     short y;
+    short z;
     bool bomb;
     short state; // not_found, found, flag
     short nei_bom; // neighboring bombs. It is determined in the beginning and then no longer needed.
