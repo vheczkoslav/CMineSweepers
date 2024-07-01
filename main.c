@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include "main.h"
 #include <time.h>
+#include <malloc.h>
 #define sprite_count 30
 #define ifdbg if(DEBUG == true)
+
 
 int g = BEFORE;
 
@@ -23,6 +25,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                 printf("Unable to load image[%d]: %s\n", i, path);
                 exit(-1);
             }
+            textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
             continue;
         }
         else{
@@ -33,6 +36,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                         printf("Unable to load image[%d]\n", i);
                         exit(-1);
                     }
+                    textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
                     continue;
                 case 27:
                     tmp = IMG_Load("sprites/flag.png");
@@ -40,6 +44,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                         printf("Unable to load image[%d]\n", i);
                         exit(-1);
                     }
+                    textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
                     continue;
                 case 28:
                     tmp = IMG_Load("sprites/0.png");
@@ -54,6 +59,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                         printf("Unable to load image[%d]\n", i);
                         exit(-1);
                     }
+                    textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
                     continue;
             }
         }
@@ -63,7 +69,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
 }
 
 void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show) {
-    int rx = p.x / TILE_SIZE, ry = p.y / TILE_SIZE, rz = p.z / TILE_SIZE;
+    int rx = p.x / TILE_SIZE, ry = p.y / TILE_SIZE, rz = p.z;
     pos rp = {rx, ry, rz};
     ifdbg printf("X: %d, Y: %d\n", rx, ry);
     if(!show){}
@@ -180,12 +186,11 @@ void init_tiles() {
                 tiles[h][i][j].y = i;
                 tiles[h][i][j].z = h;
                 tiles[h][i][j].bomb = false;
+                tiles[h][i][j].nei_bom = 0;
             }
         }
     }
-
-    //fillBombs();
-
+    fillBombs();
     for (int h = 0; h < TILE_LEVELS; h++) {
         for (int i = 0; i < TILE_ROWS; i++) {
             for (int j = 0; j < TILE_COLS; j++) {
@@ -194,6 +199,7 @@ void init_tiles() {
             }
         }
     }
+    //ifdbg print_tiles();
 }
 
 void fillBombs() {
@@ -210,14 +216,14 @@ void fillBombs() {
     srand(time(0)); // generates new seed for random tile index
     for(int i = 0; i < bombCount; i++){
         int rand_index = rand() % (tilesCount), rand_tile = freeTiles[rand_index];
-        printf("%d, %d, ", i, rand_index);
+        //printf("%d, %d, ", i, rand_index);
         int z = rand_tile / (TILE_ROWS * TILE_COLS);
         int y = (rand_tile / TILE_COLS) % TILE_ROWS;
         int x = rand_tile % TILE_COLS;
-        printf("%d, %d, %d\n", x, y, z);
+        //printf("%d, %d, %d\n", x, y, z);
         if(tiles[z][y][x].bomb != true) tiles[z][y][x].bomb = true;
         else {i--; continue;}
-        printf("check ok\n");
+        //printf("check ok\n");
         if(rand_index == tilesCount - 1){} // To make the print start only from the index
         else{
             for(int j = rand_index; j < tilesCount - 1; j++) {
@@ -249,10 +255,10 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int curr
                 temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE; // Z must NOT be used!
                 temp.w = TILE_SIZE, temp.h = TILE_SIZE;
                 if(!tiles[currZ][i][j].bomb){
-                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].nei_bom], NULL, &temp);
                 }
                 else{
-                    SDL_RenderCopy(renderer, textures[1], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[27], NULL, &temp);
                 }
             }
         }
@@ -264,16 +270,16 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int curr
                 temp.x = j * TILE_SIZE, temp.y = i * TILE_SIZE;
                 temp.w = TILE_SIZE, temp.h = TILE_SIZE;
                 if(tiles[currZ][i][j].state == NOT_FOUND) {
-                    SDL_RenderCopy(renderer, textures[0], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[29], NULL, &temp);
                 }
                 else if(tiles[currZ][i][j].state == FOUND && !tiles[currZ][i][j].bomb){
-                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].bomb], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[tiles[currZ][i][j].nei_bom], NULL, &temp);
                 }
                 else if(tiles[currZ][i][j].state == FOUND && tiles[currZ][i][j].bomb){
-                    SDL_RenderCopy(renderer, textures[1], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[27], NULL, &temp);
                 }
                 else if(tiles[currZ][i][j].state == FLAG){
-                    SDL_RenderCopy(renderer, textures[2], NULL, &temp);
+                    SDL_RenderCopy(renderer, textures[28], NULL, &temp);
                 }
             }
         }
@@ -282,6 +288,7 @@ void render(SDL_Renderer* renderer, SDL_Texture** textures, bool* show, int curr
 }
 
 short neighborBombs(pos p){
+    static int iter = 0;
     int counter = 0;
     int x = p.x;
     int y = p.y;
@@ -303,10 +310,9 @@ short neighborBombs(pos p){
             }
         }
     }
-
+    //ifdbg printf("Tile at (%d, %d, %d) has %d neighboring bombs.\n", x, y, z, counter);
     return counter;
 }
-
 
 void showBombs() {
     for(int h = 0; h < TILE_LEVELS; h++){
@@ -331,6 +337,7 @@ void print_tiles(){
             }
             printf("\n");
         }
+        printf("\n");
     }
 }
 
@@ -463,10 +470,12 @@ int main(int argc, char** argv) {
                     if(evt.key.keysym.sym == SDLK_q){ // get into upper level
                         if(currentZ > 0) currentZ--;
                         render(rnd, sprites, &showAll, currentZ);
+                        ifdbg printf("%d\n", currentZ);
                     }
                     if(evt.key.keysym.sym == SDLK_e) {// get into lower level
                         if(currentZ < TILE_LEVELS - 1) currentZ++;
                         render(rnd, sprites, &showAll, currentZ);
+                        ifdbg printf("%d\n", currentZ);
                     }
             }
         }

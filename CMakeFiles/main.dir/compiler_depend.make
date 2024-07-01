@@ -220,8 +220,11 @@ CMakeFiles/main.dir/main.c.o: main.c \
   /usr/include/time.h \
   /usr/include/x86_64-linux-gnu/bits/time.h \
   /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
-  /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h
+  /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
+  /usr/include/malloc.h
 
+
+/usr/include/malloc.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h:
 

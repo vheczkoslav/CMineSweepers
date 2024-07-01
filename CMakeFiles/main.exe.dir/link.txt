@@ -1,0 +1,1 @@
+x86_64-w64-mingw32-gcc  -fsanitize=address CMakeFiles/main.exe.dir/main.c.o -o main.exe  /usr/lib/x86_64-linux-gnu/libSDL2.so /usr/lib/x86_64-linux-gnu/libSDL2main.a -lSDL2::SDL2_image -lSDL2::SDL2_ttf -lSDL2::SDL2_mixer 
