@@ -5,17 +5,15 @@
 #include <malloc.h>
 #define sprite_count 30
 #define ifdbg if(DEBUG == true)
-
-
 int g = BEFORE;
 
 SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
     SDL_Texture** textures = malloc(len * sizeof(SDL_Texture*));
     SDL_Surface *tmp;
     for(int i = 0; i < len; i++){
-        if(i < 26){
+        if(i < 27){
             char ind[2];
-            sprintf(ind, "%d", i + 1);
+            sprintf(ind, "%d", i);
             char path[64] = "sprites/";
             strcat(path, ind);
             char ending[16] = ".png";
@@ -30,7 +28,7 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
         }
         else{
             switch(i){
-                case 26:
+                case 27:
                     tmp = IMG_Load("sprites/bomb.png");
                     if(tmp == NULL){
                         printf("Unable to load image[%d]\n", i);
@@ -38,20 +36,13 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
                     }
                     textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
                     continue;
-                case 27:
+                case 28:
                     tmp = IMG_Load("sprites/flag.png");
                     if(tmp == NULL){
                         printf("Unable to load image[%d]\n", i);
                         exit(-1);
                     }
                     textures[i] = SDL_CreateTextureFromSurface(renderer, tmp);
-                    continue;
-                case 28:
-                    tmp = IMG_Load("sprites/0.png");
-                    if(tmp == NULL){
-                        printf("Unable to load image[%d]\n", i);
-                        exit(-1);
-                    }
                     continue;
                 case 29:
                     tmp = IMG_Load("sprites/hidden.png");
@@ -70,11 +61,11 @@ SDL_Texture** load_textures(int len, SDL_Renderer* renderer) {
 
 void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show) {
     int rx = p.x / TILE_SIZE, ry = p.y / TILE_SIZE, rz = p.z;
-    pos rp = {rx, ry, rz};
-    ifdbg printf("X: %d, Y: %d\n", rx, ry);
+    //ifdbg printf("X: %d, Y: %d, Z: %d\n", rx, ry, rz);
     if(!show){}
     else {
         if (signal == 0) { // L_CLICK
+            ifdbg neighborBombs((pos){rx, ry, rz});
             if (g == BEFORE) {
                 g++;
                 SDL_SetWindowTitle(sw, rtStateMsg());
@@ -86,7 +77,7 @@ void mouseHandle(pos p, SDL_Window* sw, int signal, bool* show) {
                     showBombs();
                 } else {
                     tiles[rz][ry][rx].state = FOUND;
-                    if (tiles[rz][ry][rx].nei_bom == 0) showEmpty(rp);
+                    if (tiles[rz][ry][rx].nei_bom == 0) showEmpty((pos){rx, ry, rz});
                 }
             } else {
                 g = 0;
@@ -117,7 +108,6 @@ void showEmpty(pos rp) {
     int x = rp.x;
     int y = rp.y;
     int z = rp.z;
-
     tiles[z][y][x].state = FOUND;
 
     // Check all 26 neighbors in 3D space
@@ -194,8 +184,7 @@ void init_tiles() {
     for (int h = 0; h < TILE_LEVELS; h++) {
         for (int i = 0; i < TILE_ROWS; i++) {
             for (int j = 0; j < TILE_COLS; j++) {
-                pos p = { .x = j, .y = i, .z = h };
-                tiles[h][i][j].nei_bom = neighborBombs(p);
+                tiles[h][i][j].nei_bom = neighborBombs((pos){ .x = j, .y = i, .z = h });
             }
         }
     }
@@ -310,7 +299,7 @@ short neighborBombs(pos p){
             }
         }
     }
-    //ifdbg printf("Tile at (%d, %d, %d) has %d neighboring bombs.\n", x, y, z, counter);
+    ifdbg printf("Tile at (%d, %d, %d) has %d neighboring bombs.\n", x, y, z, counter);
     return counter;
 }
 
@@ -440,14 +429,12 @@ int main(int argc, char** argv) {
                     int mouseX = 0, mouseY = 0;
                     if(SDL_BUTTON_LEFT == evt.button.button){ // if (evt.button.type == ...)
                         SDL_GetMouseState(&mouseX, &mouseY);
-                        pos p = {mouseX, mouseY, currentZ};
-                        mouseHandle(p, win, 0, &showAll);
+                        mouseHandle((pos){mouseX, mouseY, currentZ}, win, 0, &showAll);
                         render(rnd, sprites, &showAll, currentZ);
                     }
                     if(SDL_BUTTON_RIGHT == evt.button.button){
                         SDL_GetMouseState(&mouseX, &mouseY);
-                        pos p = {mouseX, mouseY, currentZ};
-                        mouseHandle(p, win, 1, &showAll);
+                        mouseHandle((pos){mouseX, mouseY, currentZ}, win, 1, &showAll);
                         render(rnd, sprites, &showAll, currentZ);
                     }
                     break;
