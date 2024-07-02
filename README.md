@@ -7,4 +7,4 @@ GAME-SIZE options:
 DEBUG = 1 gives you an additional debug window on which you can see location of all bombs. DEBUG = 0 turns it off.
 TILE_SIZE = 16 changes the size of tiles. Values of this settings must be divisible by 8 without carry.
 Teaser image:
-![3D minesweeper](https://github.com/vheczkoslav/CMineSweepers/blob/main/readme-img.png?raw=true)
+![3D minesweeper](https://github.com/vheczkoslav/CMineSweepers/blob/3d/readme-img.png)
